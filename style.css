@@ -132,6 +132,86 @@ h1 {
   font-size: 12px;
 }
 
+.usage-panel {
+  margin-bottom: 18px;
+  padding: 18px 20px;
+}
+
+.usage-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.usage-heading .eyebrow {
+  margin-bottom: 4px;
+}
+
+.usage-heading > p,
+.usage-warning {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.usage-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: usage;
+}
+
+.usage-steps li {
+  position: relative;
+  min-width: 0;
+  padding: 10px 10px 10px 35px;
+  border-radius: 6px;
+  background: #f6f8fa;
+  counter-increment: usage;
+}
+
+.usage-steps li::before {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border-radius: 50%;
+  background: #eaeef2;
+  color: #424a53;
+  content: counter(usage);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.usage-steps b,
+.usage-steps span {
+  display: block;
+}
+
+.usage-steps b {
+  margin-bottom: 4px;
+  font-size: 11px;
+}
+
+.usage-steps span {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.65;
+}
+
+.usage-warning {
+  margin-top: 11px;
+  line-height: 1.6;
+}
+
 .summary {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -497,6 +577,10 @@ footer {
     gap: 10px;
   }
 
+  .usage-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .summary-card {
     min-height: 93px;
     padding: 14px;
@@ -529,6 +613,19 @@ footer {
     align-items: start;
     flex-direction: column;
     gap: 12px;
+  }
+
+  .usage-panel {
+    padding: 16px;
+  }
+
+  .usage-heading {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .usage-steps {
+    grid-template-columns: 1fr;
   }
 
   h1 {
