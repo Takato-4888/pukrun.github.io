@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="PUKRUN 文化祭スタッフ用レジ・売上管理"
+    />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#f5f6f7" />
+    <title>PUKRUN | 文化祭レジ</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="PUKRUN レジ">
+        <span class="brand-mark" aria-hidden="true">P</span>
+        <span>PUKRUN <small>FESTIVAL 2026</small></span>
+      </a>
+      <span class="staff-label"><span></span> スタッフ用</span>
+    </header>
+
+    <main class="dashboard">
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">CAMPUS FESTIVAL / 2026</p>
+          <h1>レジ・売上管理</h1>
+          <p class="subheading">チョコマシュマロ</p>
+        </div>
+        <time id="today"></time>
+      </div>
+
+      <section class="summary" aria-label="売上集計">
+        <article class="summary-card">
+          <span>2日間の売上</span>
+          <strong id="total-sales">¥0</strong>
+        </article>
+        <article class="summary-card">
+          <span>2日間の原材料費</span>
+          <strong id="total-cost">¥0</strong>
+        </article>
+        <article class="summary-card profit-card">
+          <span>2日間の利益</span>
+          <strong id="total-profit">¥0</strong>
+        </article>
+        <article class="summary-card count-card">
+          <span>2日間の販売数</span>
+          <strong><b id="total-quantity">0</b><small> 個</small></strong>
+        </article>
+      </section>
+
+      <section class="panel daily-panel" aria-labelledby="daily-title">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">DAILY TOTALS</p>
+            <h2 id="daily-title">日別集計</h2>
+          </div>
+          <span class="daily-caption">売上・原材料費・利益・販売数</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">営業日</th>
+                <th scope="col">売上</th>
+                <th scope="col">原材料費</th>
+                <th scope="col">利益</th>
+                <th scope="col">販売数</th>
+              </tr>
+            </thead>
+            <tbody id="daily-rows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <div class="main-grid">
+        <section class="panel register-panel" aria-labelledby="register-title">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">POINT OF SALE</p>
+              <h2 id="register-title">お会計</h2>
+            </div>
+            <label class="day-select-label" for="active-day">
+              <span>営業日</span>
+              <select id="active-day">
+                <option value="1">1日目</option>
+                <option value="2">2日目</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="price-line">
+            <span>販売価格</span>
+            <strong id="display-price">¥0 <small>/ 個</small></strong>
+          </div>
+
+          <label class="quantity-label" for="quantity">販売数</label>
+          <div class="quantity-control">
+            <button type="button" class="step-button" id="decrease" aria-label="個数を1つ減らす">−</button>
+            <input id="quantity" type="number" min="1" step="1" value="1" inputmode="numeric" aria-label="販売数" />
+            <button type="button" class="step-button" id="increase" aria-label="個数を1つ増やす">＋</button>
+            <span>個</span>
+          </div>
+
+          <div class="checkout-total">
+            <span>お預かり金額</span>
+            <strong id="checkout-total">¥0</strong>
+          </div>
+          <button type="button" class="sell-button" id="record-sale">販売を記録する</button>
+          <p class="form-message" id="form-message" role="status" aria-live="polite"></p>
+        </section>
+
+        <section class="panel settings-panel" aria-labelledby="settings-title">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">PRICE SETTINGS</p>
+              <h2 id="settings-title">価格・原価の設定</h2>
+            </div>
+          </div>
+          <p class="panel-description">1個あたりの金額を設定してください。</p>
+          <form id="settings-form">
+            <label for="unit-price">販売価格 <span>円 / 個</span></label>
+            <input id="unit-price" name="unitPrice" type="number" min="0" step="1" required inputmode="numeric" />
+            <label for="unit-cost">原材料費 <span>円 / 個</span></label>
+            <input id="unit-cost" name="unitCost" type="number" min="0" step="1" required inputmode="numeric" />
+            <button type="submit" class="save-button">設定を保存</button>
+            <p class="form-message" id="settings-message" role="status" aria-live="polite"></p>
+          </form>
+        </section>
+      </div>
+
+      <section class="panel history-panel" aria-labelledby="history-title">
+        <div class="panel-heading history-heading">
+          <div>
+            <p class="eyebrow">SALES LOG</p>
+            <h2 id="history-title">販売履歴</h2>
+          </div>
+          <button type="button" class="clear-button" id="clear-history">この日の履歴を削除</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">日時</th>
+                <th scope="col">販売数</th>
+                <th scope="col">売上</th>
+                <th scope="col">原材料費</th>
+                <th scope="col">利益</th>
+              </tr>
+            </thead>
+            <tbody id="history-rows"></tbody>
+          </table>
+          <p class="empty-state" id="empty-state">販売履歴はまだありません。</p>
+        </div>
+      </section>
+
+      <p class="storage-note">
+        1日目・2日目の販売記録をこの端末のブラウザに保存しています。別の端末とは共有されません。
+      </p>
+      <p class="error-message" id="app-error" role="alert" hidden></p>
+    </main>
+
+    <footer>
+      <span>PUKRUN</span>
+      <span>スタッフ用レジ・売上管理</span>
+    </footer>
+  </body>
+</html>
