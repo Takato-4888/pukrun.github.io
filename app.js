@@ -24,7 +24,7 @@ const elements = {
   formMessage: document.querySelector("#form-message"),
   historyRows: document.querySelector("#history-rows"),
   emptyState: document.querySelector("#empty-state"),
-  clearHistory: document.querySelector("#clear-history"),
+  deleteSelectedSales: document.querySelector("#delete-selected-sales"),
   recordSale: document.querySelector("#record-sale"),
   error: document.querySelector("#app-error"),
 };
@@ -99,6 +99,7 @@ function updateCheckout() {
 function renderHistory() {
   const daySales = state.sales.filter((sale) => sale.day === state.activeDay);
   elements.historyRows.replaceChildren();
+  elements.deleteSelectedSales.disabled = true;
   elements.emptyState.hidden = daySales.length > 0;
   elements.emptyState.textContent = `${state.activeDay}日目の販売履歴はまだありません。`;
 
@@ -112,6 +113,14 @@ function renderHistory() {
       minute: "2-digit",
     }).format(new Date(sale.createdAt));
 
+    const selectionCell = document.createElement("td");
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.className = "sale-selection";
+    checkbox.dataset.saleId = sale.id;
+    checkbox.setAttribute("aria-label", `${dateCell.textContent} ${sale.quantity}個の販売記録を選択`);
+    selectionCell.append(checkbox);
+    row.append(selectionCell);
     const values = [
       `${sale.quantity} 個`,
       formatYen(sale.revenue),
@@ -126,6 +135,11 @@ function renderHistory() {
     }
     elements.historyRows.append(row);
   }
+}
+
+function updateDeleteSelectedButton() {
+  elements.deleteSelectedSales.disabled =
+    !elements.historyRows.querySelector(".sale-selection:checked");
 }
 
 function render() {
@@ -196,7 +210,6 @@ try {
   document.querySelectorAll(".step-button").forEach((button) => {
     button.disabled = true;
   });
-  elements.clearHistory.disabled = true;
   elements.activeDay.disabled = true;
   showError(`データを読み込めませんでした: ${error.message}`);
 }
@@ -292,20 +305,35 @@ elements.recordSale.addEventListener("click", () => {
   }
 });
 
-elements.clearHistory.addEventListener("click", () => {
-  const daySales = state.sales.filter((sale) => sale.day === state.activeDay);
-  if (daySales.length === 0) return;
-  if (!window.confirm(`${state.activeDay}日目の販売履歴を削除します。この操作は取り消せません。`)) return;
+elements.historyRows.addEventListener("change", (event) => {
+  if (event.target instanceof HTMLInputElement && event.target.matches(".sale-selection")) {
+    updateDeleteSelectedButton();
+  }
+});
 
+elements.deleteSelectedSales.addEventListener("click", () => {
+  const selectedIds = [...elements.historyRows.querySelectorAll(".sale-selection:checked")]
+    .map((checkbox) => checkbox.dataset.saleId)
+    .filter((saleId) => saleId !== undefined);
+  if (selectedIds.length === 0) return;
+  if (!window.confirm(`選択した販売記録 ${selectedIds.length}件だけを削除します。よろしいですか？`)) return;
+
+  const selectedIdSet = new Set(selectedIds);
   const previousSales = state.sales;
-  state.sales = state.sales.filter((sale) => sale.day !== state.activeDay);
+  state.sales = state.sales.filter((sale) => !selectedIdSet.has(sale.id));
   try {
     saveState();
-    elements.formMessage.textContent = "";
+    elements.formMessage.textContent = `販売記録を${selectedIds.length}件削除しました。`;
     render();
   } catch (error) {
     state.sales = previousSales;
-    showError(`履歴を削除できませんでした: ${error.message}`);
+    showError(`選択した販売記録を削除できませんでした: ${error.message}`);
     render();
+    for (const checkbox of elements.historyRows.querySelectorAll(".sale-selection")) {
+      if (checkbox.dataset.saleId && selectedIdSet.has(checkbox.dataset.saleId)) {
+        checkbox.checked = true;
+      }
+    }
+    updateDeleteSelectedButton();
   }
 });

@@ -46,7 +46,7 @@
           <li><b>販売を記録</b><span>販売数を入力して合計を確認し、「販売を記録する」を押します。</span></li>
           <li><b>集計を確認</b><span>日別集計と画面上部の2日間合計に、売上・原材料費・利益・販売数が反映されます。</span></li>
         </ol>
-        <p class="usage-warning">※履歴の削除は選択中の日だけが対象です。販売記録はこの端末のブラウザに保存されます。</p>
+        <p class="usage-warning">※販売履歴は削除したい記録を選択して削除できます。販売記録はこの端末のブラウザに保存されます。</p>
       </section>
 
       <section class="summary" aria-label="売上集計">
@@ -154,12 +154,15 @@
             <p class="eyebrow">SALES LOG</p>
             <h2 id="history-title">販売履歴</h2>
           </div>
-          <button type="button" class="clear-button" id="clear-history">この日の履歴を削除</button>
+          <button type="button" class="delete-selected-button" id="delete-selected-sales" disabled>
+            選択した記録を削除
+          </button>
         </div>
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
+                <th scope="col"><span class="visually-hidden">選択</span></th>
                 <th scope="col">日時</th>
                 <th scope="col">販売数</th>
                 <th scope="col">売上</th>
