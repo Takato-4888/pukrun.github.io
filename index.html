@@ -41,10 +41,10 @@
           <p>販売前に営業日を確認してください。</p>
         </div>
         <ol class="usage-steps">
-          <li><b>価格を設定</b><span>「価格・原価の設定」で販売価格と1個あたりの原材料費を入力し、保存します。</span></li>
+          <li><b>価格を設定</b><span>販売価格と材料費の合計を入力し、保存します。</span></li>
           <li><b>営業日を選択</b><span>「お会計」で1日目・2日目を選びます。記録後も日別集計で両日の結果を確認できます。</span></li>
           <li><b>販売を記録</b><span>販売数を入力して合計を確認し、「販売を記録する」を押します。</span></li>
-          <li><b>集計を確認</b><span>日別集計と画面上部の2日間合計に、売上・原材料費・利益・販売数が反映されます。</span></li>
+          <li><b>集計を確認</b><span>日別集計では日ごとの売上・販売数を、画面上部では材料費の合計と利益を確認できます。</span></li>
         </ol>
         <p class="usage-warning">※販売履歴は削除したい記録を選択して削除できます。販売記録はこの端末のブラウザに保存されます。</p>
       </section>
@@ -55,8 +55,8 @@
           <strong id="total-sales">¥0</strong>
         </article>
         <article class="summary-card">
-          <span>2日間の原材料費</span>
-          <strong id="total-cost">¥0</strong>
+          <span>材料費の合計</span>
+          <strong id="total-material-cost">¥0</strong>
         </article>
         <article class="summary-card profit-card">
           <span>2日間の利益</span>
@@ -74,7 +74,7 @@
             <p class="eyebrow">DAILY TOTALS</p>
             <h2 id="daily-title">日別集計</h2>
           </div>
-          <span class="daily-caption">売上・原材料費・利益・販売数</span>
+          <span class="daily-caption">売上・販売数</span>
         </div>
         <div class="table-wrap">
           <table>
@@ -82,8 +82,6 @@
               <tr>
                 <th scope="col">営業日</th>
                 <th scope="col">売上</th>
-                <th scope="col">原材料費</th>
-                <th scope="col">利益</th>
                 <th scope="col">販売数</th>
               </tr>
             </thead>
@@ -122,8 +120,14 @@
           </div>
 
           <div class="checkout-total">
-            <span>お預かり金額</span>
+            <span>お会計金額</span>
             <strong id="checkout-total">¥0</strong>
+          </div>
+          <label class="tender-label" for="tender-amount">お預かり金額</label>
+          <input id="tender-amount" class="tender-input" type="number" min="0" step="1" inputmode="numeric" placeholder="金額を入力" />
+          <div class="change-total">
+            <span>お釣り</span>
+            <strong id="change-amount" aria-live="polite">—</strong>
           </div>
           <button type="button" class="sell-button" id="record-sale">販売を記録する</button>
           <p class="form-message" id="form-message" role="status" aria-live="polite"></p>
@@ -133,15 +137,15 @@
           <div class="panel-heading">
             <div>
               <p class="eyebrow">PRICE SETTINGS</p>
-              <h2 id="settings-title">価格・原価の設定</h2>
+              <h2 id="settings-title">価格・材料費の設定</h2>
             </div>
           </div>
-          <p class="panel-description">1個あたりの金額を設定してください。</p>
+          <p class="panel-description">販売価格は1個あたり、材料費は合計金額を設定してください。</p>
           <form id="settings-form">
             <label for="unit-price">販売価格 <span>円 / 個</span></label>
             <input id="unit-price" name="unitPrice" type="number" min="0" step="1" required inputmode="numeric" />
-            <label for="unit-cost">原材料費 <span>円 / 個</span></label>
-            <input id="unit-cost" name="unitCost" type="number" min="0" step="1" required inputmode="numeric" />
+            <label for="material-cost">材料費 <span>円（合計）</span></label>
+            <input id="material-cost" name="materialCost" type="number" min="0" step="1" required inputmode="numeric" />
             <button type="submit" class="save-button">設定を保存</button>
             <p class="form-message" id="settings-message" role="status" aria-live="polite"></p>
           </form>
@@ -166,8 +170,6 @@
                 <th scope="col">日時</th>
                 <th scope="col">販売数</th>
                 <th scope="col">売上</th>
-                <th scope="col">原材料費</th>
-                <th scope="col">利益</th>
               </tr>
             </thead>
             <tbody id="history-rows"></tbody>

@@ -1,7 +1,7 @@
 const STORAGE_KEY = "pukrun-pos-v1";
 const defaultState = {
   unitPrice: 200,
-  unitCost: 0,
+  materialCost: 0,
   activeDay: 1,
   sales: [],
 };
@@ -9,7 +9,7 @@ const defaultState = {
 const elements = {
   today: document.querySelector("#today"),
   totalSales: document.querySelector("#total-sales"),
-  totalCost: document.querySelector("#total-cost"),
+  totalMaterialCost: document.querySelector("#total-material-cost"),
   totalProfit: document.querySelector("#total-profit"),
   totalQuantity: document.querySelector("#total-quantity"),
   dailyRows: document.querySelector("#daily-rows"),
@@ -17,8 +17,10 @@ const elements = {
   displayPrice: document.querySelector("#display-price"),
   quantity: document.querySelector("#quantity"),
   checkoutTotal: document.querySelector("#checkout-total"),
+  tenderAmount: document.querySelector("#tender-amount"),
+  changeAmount: document.querySelector("#change-amount"),
   unitPrice: document.querySelector("#unit-price"),
-  unitCost: document.querySelector("#unit-cost"),
+  materialCost: document.querySelector("#material-cost"),
   settingsForm: document.querySelector("#settings-form"),
   settingsMessage: document.querySelector("#settings-message"),
   formMessage: document.querySelector("#form-message"),
@@ -38,8 +40,8 @@ function isValidState(value) {
     typeof value === "object" &&
     Number.isSafeInteger(value.unitPrice) &&
     value.unitPrice >= 0 &&
-    Number.isSafeInteger(value.unitCost) &&
-    value.unitCost >= 0 &&
+    ((Number.isSafeInteger(value.materialCost) && value.materialCost >= 0) ||
+      (Number.isSafeInteger(value.unitCost) && value.unitCost >= 0)) &&
     (value.activeDay === undefined || value.activeDay === 1 || value.activeDay === 2) &&
     Array.isArray(value.sales) &&
     value.sales.every(
@@ -51,7 +53,8 @@ function isValidState(value) {
         Number.isSafeInteger(sale.quantity) &&
         sale.quantity > 0 &&
         Number.isSafeInteger(sale.revenue) &&
-        Number.isSafeInteger(sale.cost) &&
+        (sale.cost === undefined ||
+          (Number.isSafeInteger(sale.cost) && sale.cost >= 0)) &&
         (sale.day === undefined || sale.day === 1 || sale.day === 2),
     )
   );
@@ -66,9 +69,18 @@ function loadState() {
     throw new Error("保存データの形式が正しくありません。データを保護するため読み込みを中止しました。");
   }
   return {
-    ...parsed,
+    unitPrice: parsed.unitPrice,
+    materialCost:
+      parsed.materialCost ??
+      parsed.sales.reduce((total, sale) => total + (sale.cost ?? 0), 0),
     activeDay: parsed.activeDay ?? 1,
-    sales: parsed.sales.map((sale) => ({ ...sale, day: sale.day ?? 1 })),
+    sales: parsed.sales.map((sale) => ({
+      id: sale.id,
+      createdAt: sale.createdAt,
+      day: sale.day ?? 1,
+      quantity: sale.quantity,
+      revenue: sale.revenue,
+    })),
   };
 }
 
@@ -90,10 +102,22 @@ function updateCheckout() {
   const validTotal = Number.isSafeInteger(total);
 
   elements.checkoutTotal.textContent = formatYen(validTotal ? total : 0);
+  const tender = Number(elements.tenderAmount.value);
+  const validTender =
+    elements.tenderAmount.value !== "" &&
+    Number.isSafeInteger(tender) &&
+    tender >= 0;
+  if (!validQuantity || !validTotal || !validTender) {
+    elements.changeAmount.textContent = "—";
+  } else if (tender >= total) {
+    elements.changeAmount.textContent = formatYen(tender - total);
+  } else {
+    elements.changeAmount.textContent = `不足 ${formatYen(total - tender)}`;
+  }
   elements.recordSale.disabled =
     !validQuantity ||
     !validTotal ||
-    (state.unitPrice === 0 && state.unitCost === 0);
+    (state.unitPrice === 0 && state.materialCost === 0);
 }
 
 function renderHistory() {
@@ -124,8 +148,6 @@ function renderHistory() {
     const values = [
       `${sale.quantity} 個`,
       formatYen(sale.revenue),
-      formatYen(sale.cost),
-      formatYen(sale.revenue - sale.cost),
     ];
     row.append(dateCell);
     for (const value of values) {
@@ -146,15 +168,14 @@ function render() {
   const totals = state.sales.reduce(
     (result, sale) => ({
       revenue: result.revenue + sale.revenue,
-      cost: result.cost + sale.cost,
       quantity: result.quantity + sale.quantity,
     }),
-    { revenue: 0, cost: 0, quantity: 0 },
+    { revenue: 0, quantity: 0 },
   );
 
   elements.totalSales.textContent = formatYen(totals.revenue);
-  elements.totalCost.textContent = formatYen(totals.cost);
-  elements.totalProfit.textContent = formatYen(totals.revenue - totals.cost);
+  elements.totalMaterialCost.textContent = formatYen(state.materialCost);
+  elements.totalProfit.textContent = formatYen(totals.revenue - state.materialCost);
   elements.totalQuantity.textContent = new Intl.NumberFormat("ja-JP").format(totals.quantity);
   elements.dailyRows.replaceChildren();
   for (const day of [1, 2]) {
@@ -163,17 +184,14 @@ function render() {
       .reduce(
         (result, sale) => ({
           revenue: result.revenue + sale.revenue,
-          cost: result.cost + sale.cost,
           quantity: result.quantity + sale.quantity,
         }),
-        { revenue: 0, cost: 0, quantity: 0 },
+        { revenue: 0, quantity: 0 },
       );
     const row = document.createElement("tr");
     const values = [
       `${day}日目`,
       formatYen(dayTotals.revenue),
-      formatYen(dayTotals.cost),
-      formatYen(dayTotals.revenue - dayTotals.cost),
       `${new Intl.NumberFormat("ja-JP").format(dayTotals.quantity)} 個`,
     ];
     for (const value of values) {
@@ -186,7 +204,7 @@ function render() {
   elements.activeDay.value = String(state.activeDay);
   elements.displayPrice.textContent = `${formatYen(state.unitPrice)} / 個`;
   elements.unitPrice.value = String(state.unitPrice);
-  elements.unitCost.value = String(state.unitCost);
+  elements.materialCost.value = String(state.materialCost);
   renderHistory();
   updateCheckout();
 }
@@ -215,6 +233,7 @@ try {
 }
 
 elements.quantity.addEventListener("input", updateCheckout);
+elements.tenderAmount.addEventListener("input", updateCheckout);
 elements.activeDay.addEventListener("change", () => {
   const previousDay = state.activeDay;
   state.activeDay = Number(elements.activeDay.value);
@@ -243,20 +262,20 @@ document.querySelector("#increase").addEventListener("click", () => {
 elements.settingsForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const unitPrice = Number(elements.unitPrice.value);
-  const unitCost = Number(elements.unitCost.value);
+  const materialCost = Number(elements.materialCost.value);
   if (
     !Number.isSafeInteger(unitPrice) ||
     unitPrice < 0 ||
-    !Number.isSafeInteger(unitCost) ||
-    unitCost < 0
+    !Number.isSafeInteger(materialCost) ||
+    materialCost < 0
   ) {
     elements.settingsMessage.textContent = "0円以上の整数を入力してください。";
     return;
   }
 
-  const previous = { unitPrice: state.unitPrice, unitCost: state.unitCost };
+  const previous = { unitPrice: state.unitPrice, materialCost: state.materialCost };
   state.unitPrice = unitPrice;
-  state.unitCost = unitCost;
+  state.materialCost = materialCost;
   try {
     saveState();
     elements.settingsMessage.textContent = "設定を保存しました。";
@@ -273,13 +292,11 @@ elements.settingsForm.addEventListener("submit", (event) => {
 elements.recordSale.addEventListener("click", () => {
   const quantity = Number(elements.quantity.value);
   const revenue = quantity * state.unitPrice;
-  const cost = quantity * state.unitCost;
   if (
     !Number.isSafeInteger(quantity) ||
     quantity <= 0 ||
     !Number.isSafeInteger(revenue) ||
-    !Number.isSafeInteger(cost) ||
-    (state.unitPrice === 0 && state.unitCost === 0)
+    (state.unitPrice === 0 && state.materialCost === 0)
   ) {
     elements.formMessage.textContent = "販売数と価格設定を確認してください。";
     return;
@@ -291,13 +308,13 @@ elements.recordSale.addEventListener("click", () => {
     day: state.activeDay,
     quantity,
     revenue,
-    cost,
   };
   state.sales.push(sale);
   try {
     saveState();
     elements.formMessage.textContent = "販売を記録しました。";
     elements.quantity.value = "1";
+    elements.tenderAmount.value = "";
     render();
   } catch (error) {
     state.sales.pop();
