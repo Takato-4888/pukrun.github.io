@@ -14,6 +14,7 @@ const elements = {
   totalQuantity: document.querySelector("#total-quantity"),
   dailyRows: document.querySelector("#daily-rows"),
   activeDay: document.querySelector("#active-day"),
+  salePrice: document.querySelector("#sale-price"),
   displayPrice: document.querySelector("#display-price"),
   quantity: document.querySelector("#quantity"),
   checkoutTotal: document.querySelector("#checkout-total"),
@@ -85,6 +86,31 @@ function loadState() {
 }
 
 let state;
+let selectedPriceMode = "regular";
+
+function getSaleUnitPrice() {
+  return selectedPriceMode === "300" ? 300 : state.unitPrice;
+}
+
+function renderSalePriceOptions() {
+  if (state.unitPrice === 300 && selectedPriceMode === "300") {
+    selectedPriceMode = "regular";
+  }
+
+  const options = [{ value: "regular", label: `設定価格（${formatYen(state.unitPrice)}）` }];
+  if (state.unitPrice !== 300) {
+    options.push({ value: "300", label: "300円" });
+  }
+
+  elements.salePrice.replaceChildren();
+  for (const { value, label } of options) {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    elements.salePrice.append(option);
+  }
+  elements.salePrice.value = selectedPriceMode;
+}
 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -98,7 +124,8 @@ function showError(message) {
 function updateCheckout() {
   const quantity = Number(elements.quantity.value);
   const validQuantity = Number.isSafeInteger(quantity) && quantity > 0;
-  const total = validQuantity ? quantity * state.unitPrice : 0;
+  const unitPrice = getSaleUnitPrice();
+  const total = validQuantity ? quantity * unitPrice : 0;
   const validTotal = Number.isSafeInteger(total);
 
   elements.checkoutTotal.textContent = formatYen(validTotal ? total : 0);
@@ -117,7 +144,7 @@ function updateCheckout() {
   elements.recordSale.disabled =
     !validQuantity ||
     !validTotal ||
-    (state.unitPrice === 0 && state.materialCost === 0);
+    (unitPrice === 0 && state.materialCost === 0);
 }
 
 function renderHistory() {
@@ -202,7 +229,8 @@ function render() {
     elements.dailyRows.append(row);
   }
   elements.activeDay.value = String(state.activeDay);
-  elements.displayPrice.textContent = `${formatYen(state.unitPrice)} / 個`;
+  renderSalePriceOptions();
+  elements.displayPrice.textContent = `${formatYen(getSaleUnitPrice())} / 個`;
   elements.unitPrice.value = String(state.unitPrice);
   elements.materialCost.value = String(state.materialCost);
   renderHistory();
@@ -225,6 +253,7 @@ try {
     control.disabled = true;
   });
   elements.quantity.disabled = true;
+  elements.salePrice.disabled = true;
   document.querySelectorAll(".step-button").forEach((button) => {
     button.disabled = true;
   });
@@ -234,6 +263,11 @@ try {
 
 elements.quantity.addEventListener("input", updateCheckout);
 elements.tenderAmount.addEventListener("input", updateCheckout);
+elements.salePrice.addEventListener("change", () => {
+  selectedPriceMode = elements.salePrice.value === "300" ? "300" : "regular";
+  elements.displayPrice.textContent = `${formatYen(getSaleUnitPrice())} / 個`;
+  updateCheckout();
+});
 elements.activeDay.addEventListener("change", () => {
   const previousDay = state.activeDay;
   state.activeDay = Number(elements.activeDay.value);
@@ -291,12 +325,13 @@ elements.settingsForm.addEventListener("submit", (event) => {
 
 elements.recordSale.addEventListener("click", () => {
   const quantity = Number(elements.quantity.value);
-  const revenue = quantity * state.unitPrice;
+  const unitPrice = getSaleUnitPrice();
+  const revenue = quantity * unitPrice;
   if (
     !Number.isSafeInteger(quantity) ||
     quantity <= 0 ||
     !Number.isSafeInteger(revenue) ||
-    (state.unitPrice === 0 && state.materialCost === 0)
+    (unitPrice === 0 && state.materialCost === 0)
   ) {
     elements.formMessage.textContent = "販売数と価格設定を確認してください。";
     return;

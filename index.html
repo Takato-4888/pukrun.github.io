@@ -41,7 +41,7 @@
           <p>販売前に営業日を確認してください。</p>
         </div>
         <ol class="usage-steps">
-          <li><b>価格を設定</b><span>販売価格と材料費の合計を入力し、保存します。</span></li>
+          <li><b>価格を設定</b><span>販売価格と材料費の合計を入力して保存します。お会計では設定価格か300円を選べます。</span></li>
           <li><b>営業日を選択</b><span>「お会計」で1日目・2日目を選びます。記録後も日別集計で両日の結果を確認できます。</span></li>
           <li><b>販売を記録</b><span>販売数を入力して合計を確認し、「販売を記録する」を押します。</span></li>
           <li><b>集計を確認</b><span>日別集計では日ごとの売上・販売数を、画面上部では材料費の合計と利益を確認できます。</span></li>
@@ -106,6 +106,8 @@
             </label>
           </div>
 
+          <label class="sale-price-label" for="sale-price">販売価格を選択</label>
+          <select id="sale-price" class="sale-price-select"></select>
           <div class="price-line">
             <span>販売価格</span>
             <strong id="display-price">¥0 <small>/ 個</small></strong>
