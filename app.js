@@ -230,7 +230,7 @@ function render() {
   }
   elements.activeDay.value = String(state.activeDay);
   renderSalePriceOptions();
-  elements.displayPrice.textContent = `${formatYen(getSaleUnitPrice())} / 個`;
+  elements.displayPrice.textContent = `${formatYen(getSaleUnitPrice())} / 本`;
   elements.unitPrice.value = String(state.unitPrice);
   elements.materialCost.value = String(state.materialCost);
   renderHistory();
@@ -265,7 +265,7 @@ elements.quantity.addEventListener("input", updateCheckout);
 elements.tenderAmount.addEventListener("input", updateCheckout);
 elements.salePrice.addEventListener("change", () => {
   selectedPriceMode = elements.salePrice.value === "300" ? "300" : "regular";
-  elements.displayPrice.textContent = `${formatYen(getSaleUnitPrice())} / 個`;
+  elements.displayPrice.textContent = `${formatYen(getSaleUnitPrice())} / 本`;
   updateCheckout();
 });
 elements.activeDay.addEventListener("change", () => {

@@ -110,7 +110,7 @@
           <select id="sale-price" class="sale-price-select"></select>
           <div class="price-line">
             <span>販売価格</span>
-            <strong id="display-price">¥0 <small>/ 個</small></strong>
+            <strong id="display-price">¥0 <small>/ 本</small></strong>
           </div>
 
           <label class="quantity-label" for="quantity">販売数</label>
@@ -142,9 +142,9 @@
               <h2 id="settings-title">価格・材料費の設定</h2>
             </div>
           </div>
-          <p class="panel-description">販売価格は1個あたり、材料費は合計金額を設定してください。</p>
+          <p class="panel-description">販売価格は1本あたり、材料費は合計金額を設定してください。</p>
           <form id="settings-form">
-            <label for="unit-price">販売価格 <span>円 / 個</span></label>
+            <label for="unit-price">販売価格 <span>円 / 本</span></label>
             <input id="unit-price" name="unitPrice" type="number" min="0" step="1" required inputmode="numeric" />
             <label for="material-cost">材料費 <span>円（合計）</span></label>
             <input id="material-cost" name="materialCost" type="number" min="0" step="1" required inputmode="numeric" />
