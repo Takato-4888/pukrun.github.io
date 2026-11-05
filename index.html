@@ -157,36 +157,40 @@
             <button type="submit" class="save-button">材料費を追加</button>
             <p class="form-message" id="material-message" role="status" aria-live="polite"></p>
           </form>
-          <div class="material-history">
-            <div class="material-history-heading">
-              <h3>材料費の履歴</h3>
-              <button type="button" class="delete-selected-button" id="delete-selected-materials" disabled>
-                選択した記録を削除
-              </button>
-            </div>
-            <div class="table-wrap">
-              <table class="material-history-table">
-                <colgroup>
-                  <col class="material-selection-column" />
-                  <col class="material-date-column" />
-                  <col />
-                  <col class="material-amount-column" />
-                </colgroup>
-                <thead>
-                  <tr>
-                    <th scope="col"><span class="visually-hidden">選択</span></th>
-                    <th scope="col">追加日</th>
-                    <th scope="col">材料名</th>
-                    <th scope="col">金額</th>
-                  </tr>
-                </thead>
-                <tbody id="material-rows"></tbody>
-              </table>
-              <p class="empty-state" id="material-empty-state">材料費の記録はまだありません。</p>
-            </div>
-          </div>
         </section>
       </div>
+
+      <section class="panel history-panel material-history" aria-labelledby="material-history-title">
+        <div class="panel-heading history-heading">
+          <div>
+            <p class="eyebrow">MATERIAL LOG</p>
+            <h2 id="material-history-title">材料費の履歴</h2>
+          </div>
+          <button type="button" class="delete-selected-button" id="delete-selected-materials" disabled>
+            選択した記録を削除
+          </button>
+        </div>
+        <div class="table-wrap">
+          <table class="material-history-table">
+            <colgroup>
+              <col class="material-selection-column" />
+              <col class="material-date-column" />
+              <col />
+              <col class="material-amount-column" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th scope="col"><span class="visually-hidden">選択</span></th>
+                <th scope="col">追加日</th>
+                <th scope="col">材料名</th>
+                <th scope="col">金額</th>
+              </tr>
+            </thead>
+            <tbody id="material-rows"></tbody>
+          </table>
+          <p class="empty-state" id="material-empty-state">材料費の記録はまだありません。</p>
+        </div>
+      </section>
 
       <section class="panel history-panel" aria-labelledby="history-title">
         <div class="panel-heading history-heading">

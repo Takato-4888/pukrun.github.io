@@ -517,23 +517,6 @@ h2 {
   font-weight: 650;
 }
 
-.material-history {
-  margin-top: 22px;
-}
-
-.material-history h3 {
-  margin: 0;
-  font-size: 13px;
-}
-
-.material-history-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
 .material-history-table {
   table-layout: fixed;
 }
@@ -586,6 +569,10 @@ h2 {
 
 .history-panel {
   padding-bottom: 10px;
+}
+
+.material-history {
+  margin-bottom: 18px;
 }
 
 .history-heading {
