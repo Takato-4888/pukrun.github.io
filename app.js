@@ -243,9 +243,10 @@ function renderMaterialHistory() {
     const selectionCell = document.createElement("td");
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
-    checkbox.className = "material-selection";
+    checkbox.className = "material-selection sale-selection";
     checkbox.dataset.materialId = item.id;
     checkbox.setAttribute("aria-label", `${item.name} ${formatYen(item.amount)}の材料費記録を選択`);
+    checkbox.addEventListener("change", updateDeleteSelectedMaterialsButton);
     selectionCell.append(checkbox);
     const dateCell = document.createElement("td");
     dateCell.textContent = item.createdAt
@@ -424,15 +425,6 @@ elements.materialForm.addEventListener("submit", (event) => {
   } catch (error) {
     state.materialCosts.pop();
     showError(`材料費を保存できませんでした: ${error.message}`);
-  }
-});
-
-elements.materialRows.addEventListener("change", (event) => {
-  if (
-    event.target instanceof HTMLInputElement &&
-    event.target.matches(".material-selection")
-  ) {
-    updateDeleteSelectedMaterialsButton();
   }
 });
 

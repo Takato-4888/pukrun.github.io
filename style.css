@@ -534,6 +534,38 @@ h2 {
   margin-bottom: 10px;
 }
 
+.material-history-table {
+  table-layout: fixed;
+}
+
+.material-selection-column {
+  width: 38px;
+}
+
+.material-date-column {
+  width: 96px;
+}
+
+.material-amount-column {
+  width: 78px;
+}
+
+.material-history-table th:first-child,
+.material-history-table td:first-child {
+  padding-right: 8px;
+  padding-left: 8px;
+  text-align: center;
+}
+
+.material-selection {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--blue);
+  cursor: pointer;
+  vertical-align: middle;
+}
+
 .save-button {
   margin-top: 18px;
   border-color: var(--border);
