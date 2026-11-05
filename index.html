@@ -41,7 +41,7 @@
           <p>販売前に営業日を確認してください。</p>
         </div>
         <ol class="usage-steps">
-          <li><b>価格を設定</b><span>販売価格と材料費の合計を入力して保存します。お会計では設定価格か300円を選べます。</span></li>
+          <li><b>価格・材料費を登録</b><span>販売価格を保存し、購入した材料は名前と金額を追加します。追加した材料費は履歴に残ります。</span></li>
           <li><b>営業日を選択</b><span>「お会計」で1日目・2日目を選びます。記録後も日別集計で両日の結果を確認できます。</span></li>
           <li><b>販売を記録</b><span>販売数を入力して合計を確認し、「販売を記録する」を押します。</span></li>
           <li><b>集計を確認</b><span>日別集計では日ごとの売上・販売数を、画面上部では材料費の合計と利益を確認できます。</span></li>
@@ -142,15 +142,37 @@
               <h2 id="settings-title">価格・材料費の設定</h2>
             </div>
           </div>
-          <p class="panel-description">販売価格は1本あたり、材料費は合計金額を設定してください。</p>
+          <p class="panel-description">販売価格は1本あたりで設定してください。購入した材料は名前と金額を登録できます。</p>
           <form id="settings-form">
             <label for="unit-price">販売価格 <span>円 / 本</span></label>
             <input id="unit-price" name="unitPrice" type="number" min="0" step="1" required inputmode="numeric" />
-            <label for="material-cost">材料費 <span>円（合計）</span></label>
-            <input id="material-cost" name="materialCost" type="number" min="0" step="1" required inputmode="numeric" />
             <button type="submit" class="save-button">設定を保存</button>
             <p class="form-message" id="settings-message" role="status" aria-live="polite"></p>
           </form>
+          <form id="material-form" class="material-form">
+            <label for="material-name">材料名</label>
+            <input id="material-name" name="materialName" type="text" maxlength="100" required />
+            <label for="material-amount">金額 <span>円</span></label>
+            <input id="material-amount" name="materialAmount" type="number" min="0" step="1" required inputmode="numeric" />
+            <button type="submit" class="save-button">材料費を追加</button>
+            <p class="form-message" id="material-message" role="status" aria-live="polite"></p>
+          </form>
+          <div class="material-history">
+            <h3>材料費の履歴</h3>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">追加日</th>
+                    <th scope="col">材料名</th>
+                    <th scope="col">金額</th>
+                  </tr>
+                </thead>
+                <tbody id="material-rows"></tbody>
+              </table>
+              <p class="empty-state" id="material-empty-state">材料費の記録はまだありません。</p>
+            </div>
+          </div>
         </section>
       </div>
 
@@ -181,7 +203,7 @@
       </section>
 
       <p class="storage-note">
-        1日目・2日目の販売記録をこの端末のブラウザに保存しています。別の端末とは共有されません。
+        価格設定・材料費・販売記録はこの端末のブラウザに保存しています。別の端末とは共有されません。
       </p>
       <p class="error-message" id="app-error" role="alert" hidden></p>
     </main>

@@ -485,14 +485,16 @@ h2 {
   font-weight: 650;
 }
 
-#settings-form label span {
+#settings-form label span,
+#material-form label span {
   margin-left: 5px;
   color: var(--muted);
   font-size: 10px;
   font-weight: 400;
 }
 
-#settings-form input {
+#settings-form input,
+#material-form input {
   width: 100%;
   height: 39px;
   padding: 0 11px;
@@ -500,6 +502,28 @@ h2 {
   border-radius: 6px;
   background: #fff;
   font-size: 14px;
+}
+
+#material-form {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid #eaeef2;
+}
+
+#material-form label {
+  display: block;
+  margin: 14px 0 7px;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.material-history {
+  margin-top: 22px;
+}
+
+.material-history h3 {
+  margin: 0 0 10px;
+  font-size: 13px;
 }
 
 .save-button {

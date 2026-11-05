@@ -1,7 +1,7 @@
 const STORAGE_KEY = "pukrun-pos-v1";
 const defaultState = {
   unitPrice: 200,
-  materialCost: 0,
+  materialCosts: [],
   activeDay: 1,
   sales: [],
 };
@@ -21,9 +21,14 @@ const elements = {
   tenderAmount: document.querySelector("#tender-amount"),
   changeAmount: document.querySelector("#change-amount"),
   unitPrice: document.querySelector("#unit-price"),
-  materialCost: document.querySelector("#material-cost"),
   settingsForm: document.querySelector("#settings-form"),
   settingsMessage: document.querySelector("#settings-message"),
+  materialForm: document.querySelector("#material-form"),
+  materialName: document.querySelector("#material-name"),
+  materialAmount: document.querySelector("#material-amount"),
+  materialMessage: document.querySelector("#material-message"),
+  materialRows: document.querySelector("#material-rows"),
+  materialEmptyState: document.querySelector("#material-empty-state"),
   formMessage: document.querySelector("#form-message"),
   historyRows: document.querySelector("#history-rows"),
   emptyState: document.querySelector("#empty-state"),
@@ -36,13 +41,32 @@ const formatYen = (amount) =>
   `¥${new Intl.NumberFormat("ja-JP").format(amount)}`;
 
 function isValidState(value) {
+  const validMaterialCosts =
+    Array.isArray(value?.materialCosts) &&
+    value.materialCosts.every(
+      (item) =>
+        item !== null &&
+        typeof item === "object" &&
+        typeof item.id === "string" &&
+        typeof item.name === "string" &&
+        item.name.trim().length > 0 &&
+        Number.isSafeInteger(item.amount) &&
+        item.amount >= 0 &&
+        (item.createdAt === null || typeof item.createdAt === "string"),
+    ) &&
+    Number.isSafeInteger(
+      value.materialCosts.reduce((total, item) => total + item.amount, 0),
+    );
+  const validLegacyMaterialCost =
+    (Number.isSafeInteger(value?.materialCost) && value.materialCost >= 0) ||
+    (Number.isSafeInteger(value?.unitCost) && value.unitCost >= 0);
+
   return (
     value !== null &&
     typeof value === "object" &&
     Number.isSafeInteger(value.unitPrice) &&
     value.unitPrice >= 0 &&
-    ((Number.isSafeInteger(value.materialCost) && value.materialCost >= 0) ||
-      (Number.isSafeInteger(value.unitCost) && value.unitCost >= 0)) &&
+    (validMaterialCosts || (!Array.isArray(value.materialCosts) && validLegacyMaterialCost)) &&
     (value.activeDay === undefined || value.activeDay === 1 || value.activeDay === 2) &&
     Array.isArray(value.sales) &&
     value.sales.every(
@@ -71,9 +95,17 @@ function loadState() {
   }
   return {
     unitPrice: parsed.unitPrice,
-    materialCost:
-      parsed.materialCost ??
-      parsed.sales.reduce((total, sale) => total + (sale.cost ?? 0), 0),
+    materialCosts:
+      parsed.materialCosts ??
+      (() => {
+        const amount =
+          parsed.materialCost ??
+          parsed.unitCost ??
+          parsed.sales.reduce((total, sale) => total + (sale.cost ?? 0), 0);
+        return amount > 0
+          ? [{ id: "legacy-material-cost", name: "これまでの材料費", amount, createdAt: null }]
+          : [];
+      })(),
     activeDay: parsed.activeDay ?? 1,
     sales: parsed.sales.map((sale) => ({
       id: sale.id,
@@ -92,12 +124,21 @@ function getSaleUnitPrice() {
   return selectedPriceMode === "300" ? 300 : state.unitPrice;
 }
 
+function getMaterialCostTotal() {
+  return state.materialCosts.reduce((total, item) => total + item.amount, 0);
+}
+
 function renderSalePriceOptions() {
   if (state.unitPrice === 300 && selectedPriceMode === "300") {
     selectedPriceMode = "regular";
   }
 
-  const options = [{ value: "regular", label: `設定価格（${formatYen(state.unitPrice)}）` }];
+  const options = [
+    {
+      value: "regular",
+      label: `${new Intl.NumberFormat("ja-JP").format(state.unitPrice)}円`,
+    },
+  ];
   if (state.unitPrice !== 300) {
     options.push({ value: "300", label: "300円" });
   }
@@ -144,7 +185,7 @@ function updateCheckout() {
   elements.recordSale.disabled =
     !validQuantity ||
     !validTotal ||
-    (unitPrice === 0 && state.materialCost === 0);
+    (unitPrice === 0 && getMaterialCostTotal() === 0);
 }
 
 function renderHistory() {
@@ -191,6 +232,29 @@ function updateDeleteSelectedButton() {
     !elements.historyRows.querySelector(".sale-selection:checked");
 }
 
+function renderMaterialHistory() {
+  elements.materialRows.replaceChildren();
+  elements.materialEmptyState.hidden = state.materialCosts.length > 0;
+
+  for (const item of [...state.materialCosts].reverse()) {
+    const row = document.createElement("tr");
+    const dateCell = document.createElement("td");
+    dateCell.textContent = item.createdAt
+      ? new Intl.DateTimeFormat("ja-JP", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).format(new Date(item.createdAt))
+      : "—";
+    const nameCell = document.createElement("td");
+    nameCell.textContent = item.name;
+    const amountCell = document.createElement("td");
+    amountCell.textContent = formatYen(item.amount);
+    row.append(dateCell, nameCell, amountCell);
+    elements.materialRows.append(row);
+  }
+}
+
 function render() {
   const totals = state.sales.reduce(
     (result, sale) => ({
@@ -201,8 +265,9 @@ function render() {
   );
 
   elements.totalSales.textContent = formatYen(totals.revenue);
-  elements.totalMaterialCost.textContent = formatYen(state.materialCost);
-  elements.totalProfit.textContent = formatYen(totals.revenue - state.materialCost);
+  const materialCost = getMaterialCostTotal();
+  elements.totalMaterialCost.textContent = formatYen(materialCost);
+  elements.totalProfit.textContent = formatYen(totals.revenue - materialCost);
   elements.totalQuantity.textContent = new Intl.NumberFormat("ja-JP").format(totals.quantity);
   elements.dailyRows.replaceChildren();
   for (const day of [1, 2]) {
@@ -232,8 +297,8 @@ function render() {
   renderSalePriceOptions();
   elements.displayPrice.textContent = `${formatYen(getSaleUnitPrice())} / 本`;
   elements.unitPrice.value = String(state.unitPrice);
-  elements.materialCost.value = String(state.materialCost);
   renderHistory();
+  renderMaterialHistory();
   updateCheckout();
 }
 
@@ -249,7 +314,7 @@ try {
   render();
 } catch (error) {
   elements.recordSale.disabled = true;
-  elements.settingsForm.querySelectorAll("input, button").forEach((control) => {
+  document.querySelectorAll("form input, form button").forEach((control) => {
     control.disabled = true;
   });
   elements.quantity.disabled = true;
@@ -296,30 +361,55 @@ document.querySelector("#increase").addEventListener("click", () => {
 elements.settingsForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const unitPrice = Number(elements.unitPrice.value);
-  const materialCost = Number(elements.materialCost.value);
-  if (
-    !Number.isSafeInteger(unitPrice) ||
-    unitPrice < 0 ||
-    !Number.isSafeInteger(materialCost) ||
-    materialCost < 0
-  ) {
-    elements.settingsMessage.textContent = "0円以上の整数を入力してください。";
+  if (!Number.isSafeInteger(unitPrice) || unitPrice < 0) {
+    elements.settingsMessage.textContent = "販売価格は0円以上の整数を入力してください。";
     return;
   }
 
-  const previous = { unitPrice: state.unitPrice, materialCost: state.materialCost };
+  const previous = state.unitPrice;
   state.unitPrice = unitPrice;
-  state.materialCost = materialCost;
   try {
     saveState();
     elements.settingsMessage.textContent = "設定を保存しました。";
     elements.formMessage.textContent = "";
     render();
   } catch (error) {
-    state = { ...state, ...previous };
+    state.unitPrice = previous;
     elements.settingsMessage.textContent = "";
     showError(`設定を保存できませんでした: ${error.message}`);
     render();
+  }
+});
+
+elements.materialForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const name = elements.materialName.value.trim();
+  const amount = Number(elements.materialAmount.value);
+  if (!name || !Number.isSafeInteger(amount) || amount < 0) {
+    elements.materialMessage.textContent = "材料名と0円以上の整数を入力してください。";
+    return;
+  }
+  if (!Number.isSafeInteger(getMaterialCostTotal() + amount)) {
+    elements.materialMessage.textContent = "材料費の合計が大きすぎます。金額を確認してください。";
+    return;
+  }
+
+  const item = {
+    id: crypto.randomUUID(),
+    name,
+    amount,
+    createdAt: new Date().toISOString(),
+  };
+  state.materialCosts.push(item);
+  try {
+    saveState();
+    elements.materialMessage.textContent = "材料費を追加しました。";
+    elements.materialName.value = "";
+    elements.materialAmount.value = "";
+    render();
+  } catch (error) {
+    state.materialCosts.pop();
+    showError(`材料費を保存できませんでした: ${error.message}`);
   }
 });
 
@@ -331,7 +421,7 @@ elements.recordSale.addEventListener("click", () => {
     !Number.isSafeInteger(quantity) ||
     quantity <= 0 ||
     !Number.isSafeInteger(revenue) ||
-    (unitPrice === 0 && state.materialCost === 0)
+    (unitPrice === 0 && getMaterialCostTotal() === 0)
   ) {
     elements.formMessage.textContent = "販売数と価格設定を確認してください。";
     return;
