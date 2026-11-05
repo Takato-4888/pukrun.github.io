@@ -29,6 +29,7 @@ const elements = {
   materialMessage: document.querySelector("#material-message"),
   materialRows: document.querySelector("#material-rows"),
   materialEmptyState: document.querySelector("#material-empty-state"),
+  deleteSelectedMaterials: document.querySelector("#delete-selected-materials"),
   formMessage: document.querySelector("#form-message"),
   historyRows: document.querySelector("#history-rows"),
   emptyState: document.querySelector("#empty-state"),
@@ -234,10 +235,18 @@ function updateDeleteSelectedButton() {
 
 function renderMaterialHistory() {
   elements.materialRows.replaceChildren();
+  elements.deleteSelectedMaterials.disabled = true;
   elements.materialEmptyState.hidden = state.materialCosts.length > 0;
 
   for (const item of [...state.materialCosts].reverse()) {
     const row = document.createElement("tr");
+    const selectionCell = document.createElement("td");
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.className = "material-selection";
+    checkbox.dataset.materialId = item.id;
+    checkbox.setAttribute("aria-label", `${item.name} ${formatYen(item.amount)}の材料費記録を選択`);
+    selectionCell.append(checkbox);
     const dateCell = document.createElement("td");
     dateCell.textContent = item.createdAt
       ? new Intl.DateTimeFormat("ja-JP", {
@@ -250,9 +259,14 @@ function renderMaterialHistory() {
     nameCell.textContent = item.name;
     const amountCell = document.createElement("td");
     amountCell.textContent = formatYen(item.amount);
-    row.append(dateCell, nameCell, amountCell);
+    row.append(selectionCell, dateCell, nameCell, amountCell);
     elements.materialRows.append(row);
   }
+}
+
+function updateDeleteSelectedMaterialsButton() {
+  elements.deleteSelectedMaterials.disabled =
+    !elements.materialRows.querySelector(".material-selection:checked");
 }
 
 function render() {
@@ -410,6 +424,42 @@ elements.materialForm.addEventListener("submit", (event) => {
   } catch (error) {
     state.materialCosts.pop();
     showError(`材料費を保存できませんでした: ${error.message}`);
+  }
+});
+
+elements.materialRows.addEventListener("change", (event) => {
+  if (
+    event.target instanceof HTMLInputElement &&
+    event.target.matches(".material-selection")
+  ) {
+    updateDeleteSelectedMaterialsButton();
+  }
+});
+
+elements.deleteSelectedMaterials.addEventListener("click", () => {
+  const selectedIds = [...elements.materialRows.querySelectorAll(".material-selection:checked")]
+    .map((checkbox) => checkbox.dataset.materialId)
+    .filter((materialId) => materialId !== undefined);
+  if (selectedIds.length === 0) return;
+  if (!window.confirm(`選択した材料費の記録 ${selectedIds.length}件だけを削除します。よろしいですか？`)) return;
+
+  const selectedIdSet = new Set(selectedIds);
+  const previousMaterialCosts = state.materialCosts;
+  state.materialCosts = state.materialCosts.filter((item) => !selectedIdSet.has(item.id));
+  try {
+    saveState();
+    elements.materialMessage.textContent = `材料費の記録を${selectedIds.length}件削除しました。`;
+    render();
+  } catch (error) {
+    state.materialCosts = previousMaterialCosts;
+    showError(`選択した材料費を削除できませんでした: ${error.message}`);
+    render();
+    for (const checkbox of elements.materialRows.querySelectorAll(".material-selection")) {
+      if (checkbox.dataset.materialId && selectedIdSet.has(checkbox.dataset.materialId)) {
+        checkbox.checked = true;
+      }
+    }
+    updateDeleteSelectedMaterialsButton();
   }
 });
 

@@ -522,8 +522,16 @@ h2 {
 }
 
 .material-history h3 {
-  margin: 0 0 10px;
+  margin: 0;
   font-size: 13px;
+}
+
+.material-history-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
 .save-button {

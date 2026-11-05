@@ -158,11 +158,17 @@
             <p class="form-message" id="material-message" role="status" aria-live="polite"></p>
           </form>
           <div class="material-history">
-            <h3>材料費の履歴</h3>
+            <div class="material-history-heading">
+              <h3>材料費の履歴</h3>
+              <button type="button" class="delete-selected-button" id="delete-selected-materials" disabled>
+                選択した記録を削除
+              </button>
+            </div>
             <div class="table-wrap">
               <table>
                 <thead>
                   <tr>
+                    <th scope="col"><span class="visually-hidden">選択</span></th>
                     <th scope="col">追加日</th>
                     <th scope="col">材料名</th>
                     <th scope="col">金額</th>
