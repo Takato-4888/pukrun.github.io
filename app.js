@@ -1,3 +1,8 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { supabaseConfig } from "./supabase-config.js";
+
+const supabase = createClient(supabaseConfig.url, supabaseConfig.publishableKey);
+
 const STORAGE_KEY = "pukrun-pos-v1";
 const defaultState = {
   unitPrice: 200,
@@ -86,11 +91,7 @@ function isValidState(value) {
   );
 }
 
-function loadState() {
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (saved === null) return { ...defaultState, sales: [] };
-
-  const parsed = JSON.parse(saved);
+function normalizeState(parsed) {
   if (!isValidState(parsed)) {
     throw new Error("保存データの形式が正しくありません。データを保護するため読み込みを中止しました。");
   }
@@ -118,8 +119,16 @@ function loadState() {
   };
 }
 
+function loadLocalState() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved === null) return { ...defaultState, sales: [] };
+
+  return normalizeState(JSON.parse(saved));
+}
+
 let state;
 let selectedPriceMode = "regular";
+let databaseReady = false;
 
 function getSaleUnitPrice() {
   return selectedPriceMode === "300" ? 300 : state.unitPrice;
@@ -154,8 +163,30 @@ function renderSalePriceOptions() {
   elements.salePrice.value = selectedPriceMode;
 }
 
-function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+async function updateSharedState(action, payload) {
+  if (!databaseReady) {
+    throw new Error("共有データベースの接続が完了していません。");
+  }
+
+  const { data, error } = await supabase.rpc("update_pukrun_state", {
+    p_action: action,
+    p_payload: payload,
+  });
+  if (error) throw error;
+  state = normalizeState(data);
+  render();
+}
+
+function setDatabaseReady(ready) {
+  databaseReady = ready;
+  document
+    .querySelectorAll(
+      "form input, form button, #active-day, #sale-price, #quantity, #tender-amount, .step-button, #delete-selected-sales, #delete-selected-materials",
+    )
+    .forEach((control) => {
+      control.disabled = !ready;
+    });
+  if (ready) render();
 }
 
 function showError(message) {
@@ -184,6 +215,7 @@ function updateCheckout() {
     elements.changeAmount.textContent = `不足 ${formatYen(total - tender)}`;
   }
   elements.recordSale.disabled =
+    !databaseReady ||
     !validQuantity ||
     !validTotal ||
     (unitPrice === 0 && getMaterialCostTotal() === 0);
@@ -324,22 +356,63 @@ elements.today.textContent = new Intl.DateTimeFormat("ja-JP", {
   weekday: "short",
 }).format(new Date());
 
-try {
-  state = loadState();
-  render();
-} catch (error) {
-  elements.recordSale.disabled = true;
-  document.querySelectorAll("form input, form button").forEach((control) => {
-    control.disabled = true;
-  });
-  elements.quantity.disabled = true;
-  elements.salePrice.disabled = true;
-  document.querySelectorAll(".step-button").forEach((button) => {
-    button.disabled = true;
-  });
-  elements.activeDay.disabled = true;
-  showError(`データを読み込めませんでした: ${error.message}`);
+async function connectToSharedState() {
+  if (
+    supabaseConfig.url === "YOUR_SUPABASE_URL" ||
+    supabaseConfig.publishableKey === "YOUR_SUPABASE_PUBLISHABLE_KEY"
+  ) {
+    throw new Error("supabase-config.js にSupabaseの設定を入力してください。");
+  }
+
+  const { data: initializedState, error: initializeError } = await supabase.rpc(
+    "initialize_pukrun_state",
+    { p_state: loadLocalState() },
+  );
+  if (initializeError) throw initializeError;
+  state = normalizeState(initializedState);
+
+  supabase
+    .channel("pukrun-shared-state")
+    .on(
+      "postgres_changes",
+      { event: "UPDATE", schema: "public", table: "pukrun_state", filter: "id=eq.1" },
+      (payload) => {
+        try {
+          state = normalizeState(payload.new.state);
+          render();
+          elements.error.hidden = true;
+        } catch (error) {
+          setDatabaseReady(false);
+          showError(`共有データを読み込めませんでした: ${error.message}`);
+        }
+      },
+    )
+    .subscribe((status) => {
+      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+        showError("リアルタイム更新に接続できませんでした。Supabaseの設定を確認してください。");
+      }
+    });
+
+  const { data: current, error: readError } = await supabase
+    .from("pukrun_state")
+    .select("state")
+    .eq("id", 1)
+    .single();
+  if (readError) throw readError;
+  try {
+    state = normalizeState(current.state);
+  } catch (error) {
+    setDatabaseReady(false);
+    throw error;
+  }
+  setDatabaseReady(true);
 }
+
+setDatabaseReady(false);
+connectToSharedState().catch((error) => {
+  showError(`共有データベースに接続できませんでした: ${error.message}`);
+  setDatabaseReady(false);
+});
 
 elements.quantity.addEventListener("input", updateCheckout);
 elements.tenderAmount.addEventListener("input", updateCheckout);
@@ -350,16 +423,13 @@ elements.salePrice.addEventListener("change", () => {
 });
 elements.activeDay.addEventListener("change", () => {
   const previousDay = state.activeDay;
-  state.activeDay = Number(elements.activeDay.value);
-  try {
-    saveState();
+  const activeDay = Number(elements.activeDay.value);
+  updateSharedState("set_active_day", { value: activeDay }).then(() => {
     elements.formMessage.textContent = "";
-    renderHistory();
-  } catch (error) {
-    state.activeDay = previousDay;
+  }).catch((error) => {
     elements.activeDay.value = String(previousDay);
     showError(`営業日の切り替えを保存できませんでした: ${error.message}`);
-  }
+  });
 });
 document.querySelector("#decrease").addEventListener("click", () => {
   const quantity = Number(elements.quantity.value);
@@ -381,19 +451,14 @@ elements.settingsForm.addEventListener("submit", (event) => {
     return;
   }
 
-  const previous = state.unitPrice;
-  state.unitPrice = unitPrice;
-  try {
-    saveState();
+  updateSharedState("set_unit_price", { value: unitPrice }).then(() => {
     elements.settingsMessage.textContent = "設定を保存しました。";
     elements.formMessage.textContent = "";
-    render();
-  } catch (error) {
-    state.unitPrice = previous;
+  }).catch((error) => {
     elements.settingsMessage.textContent = "";
     showError(`設定を保存できませんでした: ${error.message}`);
     render();
-  }
+  });
 });
 
 elements.materialForm.addEventListener("submit", (event) => {
@@ -415,17 +480,13 @@ elements.materialForm.addEventListener("submit", (event) => {
     amount,
     createdAt: new Date().toISOString(),
   };
-  state.materialCosts.push(item);
-  try {
-    saveState();
+  updateSharedState("add_material", item).then(() => {
     elements.materialMessage.textContent = "材料費を追加しました。";
     elements.materialName.value = "";
     elements.materialAmount.value = "";
-    render();
-  } catch (error) {
-    state.materialCosts.pop();
+  }).catch((error) => {
     showError(`材料費を保存できませんでした: ${error.message}`);
-  }
+  });
 });
 
 elements.deleteSelectedMaterials.addEventListener("click", () => {
@@ -436,14 +497,9 @@ elements.deleteSelectedMaterials.addEventListener("click", () => {
   if (!window.confirm(`選択した材料費の記録 ${selectedIds.length}件だけを削除します。よろしいですか？`)) return;
 
   const selectedIdSet = new Set(selectedIds);
-  const previousMaterialCosts = state.materialCosts;
-  state.materialCosts = state.materialCosts.filter((item) => !selectedIdSet.has(item.id));
-  try {
-    saveState();
+  updateSharedState("delete_materials", { ids: [...selectedIdSet] }).then(() => {
     elements.materialMessage.textContent = `材料費の記録を${selectedIds.length}件削除しました。`;
-    render();
-  } catch (error) {
-    state.materialCosts = previousMaterialCosts;
+  }).catch((error) => {
     showError(`選択した材料費を削除できませんでした: ${error.message}`);
     render();
     for (const checkbox of elements.materialRows.querySelectorAll(".material-selection")) {
@@ -452,7 +508,7 @@ elements.deleteSelectedMaterials.addEventListener("click", () => {
       }
     }
     updateDeleteSelectedMaterialsButton();
-  }
+  });
 });
 
 elements.recordSale.addEventListener("click", () => {
@@ -476,17 +532,14 @@ elements.recordSale.addEventListener("click", () => {
     quantity,
     revenue,
   };
-  state.sales.push(sale);
-  try {
-    saveState();
+  updateSharedState("add_sale", sale).then(() => {
     elements.formMessage.textContent = "販売を記録しました。";
     elements.quantity.value = "1";
     elements.tenderAmount.value = "";
-    render();
-  } catch (error) {
-    state.sales.pop();
+    updateCheckout();
+  }).catch((error) => {
     showError(`販売を記録できませんでした: ${error.message}`);
-  }
+  });
 });
 
 elements.historyRows.addEventListener("change", (event) => {
@@ -503,14 +556,9 @@ elements.deleteSelectedSales.addEventListener("click", () => {
   if (!window.confirm(`選択した販売記録 ${selectedIds.length}件だけを削除します。よろしいですか？`)) return;
 
   const selectedIdSet = new Set(selectedIds);
-  const previousSales = state.sales;
-  state.sales = state.sales.filter((sale) => !selectedIdSet.has(sale.id));
-  try {
-    saveState();
+  updateSharedState("delete_sales", { ids: [...selectedIdSet] }).then(() => {
     elements.formMessage.textContent = `販売記録を${selectedIds.length}件削除しました。`;
-    render();
-  } catch (error) {
-    state.sales = previousSales;
+  }).catch((error) => {
     showError(`選択した販売記録を削除できませんでした: ${error.message}`);
     render();
     for (const checkbox of elements.historyRows.querySelectorAll(".sale-selection")) {
@@ -519,5 +567,5 @@ elements.deleteSelectedSales.addEventListener("click", () => {
       }
     }
     updateDeleteSelectedButton();
-  }
+  });
 });

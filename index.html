@@ -11,7 +11,7 @@
     <meta name="theme-color" content="#f5f6f7" />
     <title>PUKRUN | 文化祭レジ</title>
     <link rel="stylesheet" href="style.css" />
-    <script src="app.js" defer></script>
+    <script type="module" src="app.js"></script>
   </head>
   <body>
     <header class="topbar">
@@ -46,7 +46,7 @@
           <li><b>販売を記録</b><span>販売数を入力して合計を確認し、「販売を記録する」を押します。</span></li>
           <li><b>集計を確認</b><span>日別集計では日ごとの売上・販売数を、画面上部では材料費の合計と利益を確認できます。</span></li>
         </ol>
-        <p class="usage-warning">※販売履歴は削除したい記録を選択して削除できます。販売記録はこの端末のブラウザに保存されます。</p>
+        <p class="usage-warning">※販売履歴は削除したい記録を選択して削除できます。記録は共有データベースに保存され、閲覧中の全端末に反映されます。</p>
       </section>
 
       <section class="summary" aria-label="売上集計">
@@ -219,7 +219,7 @@
       </section>
 
       <p class="storage-note">
-        価格設定・材料費・販売記録はこの端末のブラウザに保存しています。別の端末とは共有されません。
+        価格設定・材料費・販売記録は共有データベースに保存され、変更は全端末にリアルタイムで反映されます。
       </p>
       <p class="error-message" id="app-error" role="alert" hidden></p>
     </main>
